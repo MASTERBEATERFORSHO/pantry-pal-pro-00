@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { CountdownBar } from "@/components/pantry/CountdownBar";
+import { usePantry, removePantryItem } from "@/lib/pantry-store";
 import { AddIngredientSheet } from "@/components/pantry/AddIngredientSheet";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Info, X } from "lucide-react";
@@ -20,7 +19,6 @@ export const Route = createFileRoute("/_authenticated/pantry")({
 function PantryPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [tipsItem, setTipsItem] = useState<any | null>(null);
 
@@ -31,28 +29,12 @@ function PantryPage() {
     }
   }, [search.add, navigate]);
 
-  const { data: items = [], isLoading } = useQuery({
-    queryKey: ["pantry"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_pantry")
-        .select("*")
-        .order("expiry_date", { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-  });
+  const items = usePantry();
 
-  const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("user_pantry").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["pantry"] });
-      toast.success("Removed");
-    },
-  });
+  function handleDelete(id: string) {
+    removePantryItem(id);
+    toast.success("Removed");
+  }
 
   return (
     <div className="px-5 pt-8 animate-in fade-in slide-in-from-right-2 duration-300">
@@ -66,9 +48,7 @@ function PantryPage() {
         </Button>
       </header>
 
-      {isLoading ? (
-        <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-20 rounded-2xl bg-muted animate-pulse" />)}</div>
-      ) : items.length === 0 ? (
+      {items.length === 0 ? (
         <div className="text-center py-16 px-6 bg-card rounded-3xl border border-dashed">
           <p className="text-4xl mb-3">🧺</p>
           <p className="font-medium text-foreground">Your pantry is empty</p>
@@ -91,7 +71,7 @@ function PantryPage() {
                       <Info className="size-3.5 text-muted-foreground" />
                     </button>
                     <button
-                      onClick={() => del.mutate(it.id)}
+                      onClick={() => handleDelete(it.id)}
                       className="size-7 rounded-full bg-muted hover:bg-danger/10 flex items-center justify-center"
                     >
                       <Trash2 className="size-3.5 text-muted-foreground" />
