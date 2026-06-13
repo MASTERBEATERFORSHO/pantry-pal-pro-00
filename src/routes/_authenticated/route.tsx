@@ -1,15 +1,9 @@
-import { createFileRoute, Outlet, redirect, Link, useRouterState } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import { Home, Apple, ChefHat, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
-  },
   component: AuthedLayout,
 });
 
