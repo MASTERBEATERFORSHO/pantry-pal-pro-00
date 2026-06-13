@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { CountdownBar } from "@/components/pantry/CountdownBar";
+import { usePantry } from "@/lib/pantry-store";
 import { Button } from "@/components/ui/button";
 import { Plus, ChefHat, Sparkles } from "lucide-react";
 
@@ -11,17 +10,7 @@ export const Route = createFileRoute("/_authenticated/")({
 
 function HomePage() {
   const navigate = useNavigate();
-  const { data: items = [], isLoading } = useQuery({
-    queryKey: ["pantry"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_pantry")
-        .select("*")
-        .order("expiry_date", { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-  });
+  const items = usePantry();
 
   return (
     <div className="px-5 pt-8 animate-in fade-in slide-in-from-right-2 duration-300">
@@ -55,13 +44,7 @@ function HomePage() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-20 rounded-2xl bg-muted animate-pulse" />
-          ))}
-        </div>
-      ) : items.length === 0 ? (
+      {items.length === 0 ? (
         <div className="text-center py-12 px-6 bg-card rounded-3xl border border-dashed">
           <Sparkles className="size-8 mx-auto text-accent mb-3" />
           <p className="font-medium text-foreground">Nothing in the pantry yet</p>

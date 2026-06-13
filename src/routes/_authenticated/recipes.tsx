@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { usePantry } from "@/lib/pantry-store";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
@@ -17,14 +16,7 @@ function RecipesPage() {
   const [extra, setExtra] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const { data: items = [] } = useQuery({
-    queryKey: ["pantry"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("user_pantry").select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const items = usePantry();
 
   const visible = useMemo(() => {
     if (filter === "all") return items;
