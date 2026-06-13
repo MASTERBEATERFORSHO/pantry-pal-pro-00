@@ -3,31 +3,16 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Search, ChevronRight, Plus, Sparkles } from "lucide-react";
-import { addDays, toISODate } from "@/lib/pantry-utils";
+import { toISODate } from "@/lib/pantry-utils";
+import { addPantryItem, searchIngredients } from "@/lib/pantry-store";
+import type { Ingredient } from "@/lib/ingredients-data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-type Ingredient = {
-  id: string;
-  name: string;
-  variant_name: string;
-  emoji: string;
-  category: string;
-  base_shelf_life_days: number;
-  optimal_window_start_day: number;
-  optimal_window_end_day: number;
-  storage_tips: string;
-  basic_nutrition_info: any;
-  ripeness_applicable: boolean;
-};
 
 const RIPENESS = ["Unripe", "Ripe", "Overripe"] as const;
 
 export function AddIngredientSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Ingredient | null>(null);
   const [tipsFor, setTipsFor] = useState<Ingredient | null>(null);
@@ -37,6 +22,7 @@ export function AddIngredientSheet({ open, onOpenChange }: { open: boolean; onOp
   const [customMode, setCustomMode] = useState(false);
   const [customName, setCustomName] = useState("");
   const [customShelf, setCustomShelf] = useState("7");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -46,84 +32,37 @@ export function AddIngredientSheet({ open, onOpenChange }: { open: boolean; onOp
     }
   }, [open]);
 
-  const { data: ingredients = [] } = useQuery({
-    queryKey: ["ingredients"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ingredients")
-        .select("*")
-        .order("name");
-      if (error) throw error;
-      return data as Ingredient[];
-    },
-  });
+  const results = useMemo(() => searchIngredients(search), [search]);
 
-  const results = useMemo(() => {
-    if (!search.trim()) return [] as Ingredient[];
-    const q = search.toLowerCase();
-    return ingredients.filter(
-      (i) => i.name.toLowerCase().includes(q) || i.variant_name.toLowerCase().includes(q),
-    );
-  }, [ingredients, search]);
-
-  const addMutation = useMutation({
-    mutationFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-      if (!userId) throw new Error("Not signed in");
-
-      let payload: any;
+  function handleSubmit() {
+    setSubmitting(true);
+    try {
       if (customMode) {
-        const shelf = Math.max(1, parseInt(customShelf) || 7);
-        payload = {
-          user_id: userId,
-          ingredient_id: null,
-          custom_name: customName.trim(),
-          display_name: customName.trim(),
-          emoji: "🥗",
+        addPantryItem({
+          kind: "custom",
+          name: customName.trim(),
+          shelfDays: parseInt(customShelf) || 7,
           quantity,
-          purchase_date: purchaseDate,
-          shelf_life_days: shelf,
-          optimal_window_start_day: Math.floor(shelf * 0.2),
-          optimal_window_end_day: Math.floor(shelf * 0.7),
-          expiry_date: toISODate(addDays(new Date(purchaseDate), shelf)),
-          storage_tips: "Store in a cool, dry place.",
-        };
+          purchaseDate,
+        });
       } else {
-        if (!selected) throw new Error("Pick an ingredient");
-        let shelf = selected.base_shelf_life_days;
-        let startW = selected.optimal_window_start_day;
-        let endW = selected.optimal_window_end_day;
-        if (selected.ripeness_applicable) {
-          if (ripeness === "Overripe") shelf = Math.max(1, Math.floor(shelf * 0.4));
-          else if (ripeness === "Ripe") shelf = Math.max(1, Math.floor(shelf * 0.7));
-        }
-        payload = {
-          user_id: userId,
-          ingredient_id: selected.id,
-          display_name: selected.variant_name,
-          emoji: selected.emoji,
+        if (!selected) return;
+        addPantryItem({
+          kind: "ingredient",
+          ingredient: selected,
           quantity,
-          purchase_date: purchaseDate,
-          ripeness: selected.ripeness_applicable ? ripeness : null,
-          shelf_life_days: shelf,
-          optimal_window_start_day: Math.min(startW, shelf - 1),
-          optimal_window_end_day: Math.min(endW, shelf),
-          expiry_date: toISODate(addDays(new Date(purchaseDate), shelf)),
-          storage_tips: selected.storage_tips,
-        };
+          purchaseDate,
+          ripeness,
+        });
       }
-
-      const { error } = await supabase.from("user_pantry").insert(payload);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["pantry"] });
       toast.success("Added to your pantry 🌿");
       onOpenChange(false);
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Could not add item"),
-  });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not add item");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   const canSubmit = customMode ? customName.trim().length > 0 : !!selected;
 
@@ -285,11 +224,11 @@ export function AddIngredientSheet({ open, onOpenChange }: { open: boolean; onOp
           </div>
 
           <Button
-            onClick={() => addMutation.mutate()}
-            disabled={!canSubmit || addMutation.isPending}
+            onClick={handleSubmit}
+            disabled={!canSubmit || submitting}
             className="w-full h-12 rounded-2xl text-base"
           >
-            {addMutation.isPending ? "Adding…" : "Add to pantry"}
+            {submitting ? "Adding…" : "Add to pantry"}
           </Button>
         </div>
       </SheetContent>
