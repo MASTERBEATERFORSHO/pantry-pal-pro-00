@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CountdownBar } from "@/components/pantry/CountdownBar";
 import { usePantry } from "@/lib/pantry-store";
+import { canonicalName } from "@/lib/recipe-matcher";
 import { Button } from "@/components/ui/button";
 import { Plus, ChefHat, Sparkles } from "lucide-react";
 
@@ -55,7 +56,16 @@ function HomePage() {
       ) : (
         <div className="space-y-3">
           {items.map((it) => (
-            <CountdownBar key={it.id} item={it as any} />
+            <CountdownBar
+              key={it.id}
+              item={it as any}
+              onUseItUp={() =>
+                navigate({
+                  to: "/recipes",
+                  search: { useUp: canonicalName(it) } as any,
+                })
+              }
+            />
           ))}
         </div>
       )}

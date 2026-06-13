@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { computeCountdown } from "@/lib/pantry-utils";
+import { Flame } from "lucide-react";
 
 export interface CountdownBarItem {
   id: string;
@@ -17,10 +18,12 @@ export function CountdownBar({
   item,
   onClick,
   trailing,
+  onUseItUp,
 }: {
   item: CountdownBarItem;
   onClick?: () => void;
   trailing?: React.ReactNode;
+  onUseItUp?: () => void;
 }) {
   const info = computeCountdown({
     purchaseDate: item.purchase_date,
@@ -30,6 +33,8 @@ export function CountdownBar({
   });
 
   const isDanger = info.status === "expired" || info.status === "past";
+  const showUseItUp =
+    !!onUseItUp && (info.status === "golden" || info.status === "past" || info.status === "expired");
   const remainingColor =
     info.status === "expired"
       ? "bg-danger"
@@ -88,6 +93,22 @@ export function CountdownBar({
         <span className="text-[10px] text-muted-foreground">
           {info.status === "golden" ? "peak" : info.daysRemaining <= 0 ? "" : "left"}
         </span>
+        {showUseItUp && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onUseItUp?.();
+            }}
+            className={cn(
+              "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition-colors",
+              isDanger
+                ? "bg-danger/15 text-danger hover:bg-danger/25"
+                : "bg-golden/25 text-golden-foreground hover:bg-golden/40",
+            )}
+          >
+            <Flame className="size-3" /> Use it up
+          </button>
+        )}
         {trailing}
       </div>
     </div>

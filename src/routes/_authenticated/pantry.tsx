@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CountdownBar } from "@/components/pantry/CountdownBar";
 import { usePantry, removePantryItem } from "@/lib/pantry-store";
+import { canonicalName } from "@/lib/recipe-matcher";
 import { AddIngredientSheet } from "@/components/pantry/AddIngredientSheet";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Info, X } from "lucide-react";
@@ -62,6 +63,12 @@ function PantryPage() {
             <div key={it.id} className="space-y-2">
               <CountdownBar
                 item={it}
+                onUseItUp={() =>
+                  navigate({
+                    to: "/recipes",
+                    search: { useUp: canonicalName(it) } as any,
+                  })
+                }
                 trailing={
                   <div className="flex gap-1 mt-1">
                     <button
