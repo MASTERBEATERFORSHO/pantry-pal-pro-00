@@ -59,6 +59,60 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          default_cooking_goals: string[]
+          default_mode: string
+          dietary_preferences: string[]
+          email: string | null
+          equipment: string[]
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_cooking_goals?: string[]
+          default_mode?: string
+          dietary_preferences?: string[]
+          email?: string | null
+          equipment?: string[]
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_cooking_goals?: string[]
+          default_mode?: string
+          dietary_preferences?: string[]
+          email?: string | null
+          equipment?: string[]
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      saved_recipes: {
+        Row: {
+          created_at: string
+          id: string
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_pantry: {
         Row: {
           created_at: string
