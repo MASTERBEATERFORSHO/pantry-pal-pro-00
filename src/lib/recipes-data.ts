@@ -1,5 +1,7 @@
 export type CookingGoal = "snack" | "healthy" | "filling" | "quick";
-export type Equipment = "stovetop" | "oven" | "blender" | "microwave" | "no-cook";
+export type Equipment =
+  | "stovetop" | "oven" | "blender" | "microwave" | "no-cook"
+  | "air-fryer" | "food-processor" | "pressure-cooker" | "toaster" | "grill";
 
 export interface Recipe {
   id: string;
@@ -12,6 +14,7 @@ export interface Recipe {
   instructions: string[];
   prep_time_minutes: number;
   minimizes_waste_tags: string[];
+  dietary_tags: string[]; // tags this recipe satisfies (e.g. "Vegetarian", "Gluten-Free")
 }
 
 // Common pantry staples assumed available in Flexible mode
