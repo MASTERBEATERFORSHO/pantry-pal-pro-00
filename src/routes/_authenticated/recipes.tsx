@@ -1,13 +1,15 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { usePantry } from "@/lib/pantry-store";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
-import { ChefHat, ChevronDown, Clock, Flame, Sparkles, AlertCircle } from "lucide-react";
+import { ChefHat, ChevronDown, Clock, Flame, Sparkles, AlertCircle, Heart, Settings } from "lucide-react";
 import { z } from "zod";
-import { canonicalName, isExpiring, matchRecipes } from "@/lib/recipe-matcher";
+import { canonicalName, isExpiring, matchRecipesDetailed } from "@/lib/recipe-matcher";
 import type { CookingGoal } from "@/lib/recipes-data";
+import { useProfile } from "@/lib/profile-store";
+import { useSavedRecipes, toggleSaved } from "@/lib/saved-recipes-store";
 
 const searchSchema = z.object({
   useUp: z.string().optional(),
@@ -29,6 +31,8 @@ function RecipesPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const items = usePantry();
+  const { profile } = useProfile();
+  const saved = useSavedRecipes();
 
   const [filter, setFilter] = useState<"all" | "expiring">("all");
   const [extra, setExtra] = useState("");
@@ -38,6 +42,16 @@ function RecipesPage() {
   const [mode, setMode] = useState<"strict" | "flexible">("flexible");
   const [hasSearched, setHasSearched] = useState(false);
   const [openRecipe, setOpenRecipe] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const [primed, setPrimed] = useState(false);
+
+  // Prime defaults from profile once it loads
+  useEffect(() => {
+    if (!profile || primed) return;
+    setGoals(new Set(profile.default_cooking_goals));
+    setMode(profile.default_mode);
+    setPrimed(true);
+  }, [profile, primed]);
 
   // Handle "Use it up" nudge from Home/Pantry
   useEffect(() => {
@@ -96,20 +110,26 @@ function RecipesPage() {
 
   const results = useMemo(
     () =>
-      hasSearched
-        ? matchRecipes({
+      hasSearched && profile
+        ? matchRecipesDetailed({
             selectedNames,
             expiringNames,
             pantryNames,
             goals: [...goals],
             mode,
+            equipment: profile.equipment,
+            dietary: profile.dietary_preferences,
+            showAll,
           })
-        : [],
+        : { matches: [], equipmentFilteredOut: 0, dietaryHidden: 0 },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hasSearched, selectedIds, extraNames, goals, mode, items],
+    [hasSearched, selectedIds, extraNames, goals, mode, items, profile, showAll],
   );
 
   const canSearch = selectedNames.length > 0;
+  const noEquipmentMatches =
+    hasSearched && canSearch && results.matches.length === 0 &&
+    results.equipmentFilteredOut > 0 && results.equipmentFilteredOut >= 12;
 
   return (
     <div className="px-5 pt-8 pb-6 animate-in fade-in slide-in-from-right-2 duration-300">
@@ -254,21 +274,36 @@ function RecipesPage() {
       {hasSearched && canSearch && (
         <section className="mt-7">
           <p className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-3">
-            {results.length === 0 ? "No matches" : `${results.length} recipe${results.length === 1 ? "" : "s"}`}
+            {results.matches.length === 0 ? "No matches" : `${results.matches.length} recipe${results.matches.length === 1 ? "" : "s"}`}
           </p>
-          {results.length === 0 ? (
+          {noEquipmentMatches ? (
+            <div className="text-center py-8 px-6 bg-card rounded-3xl border border-dashed">
+              <Settings className="size-6 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm font-medium">No recipes match your current equipment.</p>
+              <p className="text-xs text-muted-foreground mt-1 mb-3">
+                Update your kitchen equipment to see more.
+              </p>
+              <Button asChild size="sm" variant="outline" className="rounded-full">
+                <Link to="/profile">Open Profile</Link>
+              </Button>
+            </div>
+          ) : results.matches.length === 0 ? (
             <div className="text-center py-10 px-6 bg-card rounded-3xl border border-dashed">
               <p className="text-3xl mb-2">🤔</p>
               <p className="text-sm text-foreground font-medium">No recipes match yet.</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Try Flexible mode, fewer goals, or add another ingredient.
+                {results.dietaryHidden > 0 && (
+                  <> {results.dietaryHidden} hidden by your diet — toggle "Show all" below.</>
+                )}
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {results.map((m) => {
+              {results.matches.map((m) => {
                 const isOpen = openRecipe === m.recipe.id;
                 const pct = Math.round(m.matchPct * 100);
+                const isSaved = saved.has(m.recipe.id);
                 return (
                   <article
                     key={m.recipe.id}
@@ -283,9 +318,17 @@ function RecipesPage() {
                           <h3 className="font-display text-base font-semibold text-foreground leading-tight">
                             {m.recipe.name}
                           </h3>
-                          <span className="text-[10px] px-2 py-1 rounded-full bg-fresh/15 text-fresh font-bold whitespace-nowrap">
-                            {pct}%
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] px-2 py-1 rounded-full bg-fresh/15 text-fresh font-bold whitespace-nowrap">
+                              {pct}%
+                            </span>
+                            <button onClick={() => toggleSaved(m.recipe.id)}
+                              aria-label={isSaved ? "Unsave" : "Save recipe"}
+                              className={cn("size-7 rounded-full flex items-center justify-center transition-colors",
+                                isSaved ? "bg-danger/10 text-danger" : "bg-muted text-muted-foreground hover:text-danger")}>
+                              <Heart className={cn("size-3.5", isSaved && "fill-current")} />
+                            </button>
+                          </div>
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-1.5">
                           <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
@@ -360,6 +403,16 @@ function RecipesPage() {
                   </article>
                 );
               })}
+              {results.dietaryHidden > 0 && (
+                <button
+                  onClick={() => setShowAll((s) => !s)}
+                  className="w-full text-xs text-muted-foreground py-3 hover:text-foreground"
+                >
+                  {showAll
+                    ? "Hide diet-conflicting recipes"
+                    : `Show all recipes (${results.dietaryHidden} hidden by your diet)`}
+                </button>
+              )}
             </div>
           )}
         </section>
