@@ -1,5 +1,7 @@
 export type CookingGoal = "snack" | "healthy" | "filling" | "quick";
-export type Equipment = "stovetop" | "oven" | "blender" | "microwave" | "no-cook";
+export type Equipment =
+  | "stovetop" | "oven" | "blender" | "microwave" | "no-cook"
+  | "air-fryer" | "food-processor" | "pressure-cooker" | "toaster" | "grill";
 
 export interface Recipe {
   id: string;
@@ -12,6 +14,7 @@ export interface Recipe {
   instructions: string[];
   prep_time_minutes: number;
   minimizes_waste_tags: string[];
+  dietary_tags: string[]; // tags this recipe satisfies (e.g. "Vegetarian", "Gluten-Free")
 }
 
 // Common pantry staples assumed available in Flexible mode
@@ -28,6 +31,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["blender"],
     prep_time_minutes: 5,
     minimizes_waste_tags: ["Banana", "Milk", "Berries"],
+    dietary_tags: ["Vegetarian", "Gluten-Free"],
     instructions: [
       "Peel the banana and slice into chunks.",
       "Add banana, milk, and any optional fruit to a blender.",
@@ -42,6 +46,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["stovetop"],
     prep_time_minutes: 10,
     minimizes_waste_tags: ["Eggs", "Bread"],
+    dietary_tags: ["Vegetarian"],
     instructions: [
       "Whisk eggs with a pinch of salt.",
       "Melt butter in a pan on low heat.",
@@ -57,6 +62,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["stovetop"],
     prep_time_minutes: 20,
     minimizes_waste_tags: ["Paneer", "Tomato"],
+    dietary_tags: ["Vegetarian", "Gluten-Free", "Low-Carb", "High-Protein"],
     instructions: [
       "Crumble paneer into rough bits.",
       "Sauté chopped onion in oil until soft, add ginger/garlic if using.",
@@ -72,6 +78,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["stovetop"],
     prep_time_minutes: 15,
     minimizes_waste_tags: ["Rice", "Carrot"],
+    dietary_tags: ["Vegetarian", "Dairy-Free"],
     instructions: [
       "Heat oil in a wok, scramble eggs and set aside.",
       "Stir-fry onion and carrot until just tender.",
@@ -87,6 +94,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["stovetop", "blender"],
     prep_time_minutes: 30,
     minimizes_waste_tags: ["Spinach", "Paneer"],
+    dietary_tags: ["Vegetarian", "Gluten-Free", "Low-Carb", "High-Protein"],
     instructions: [
       "Blanch spinach in hot water 2 minutes, then blend to a paste.",
       "Sauté onion, garlic, and ginger in oil until golden.",
@@ -102,6 +110,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["stovetop"],
     prep_time_minutes: 8,
     minimizes_waste_tags: ["Tomato", "Eggs"],
+    dietary_tags: ["Vegetarian", "Gluten-Free", "Dairy-Free", "Low-Carb", "High-Protein"],
     instructions: [
       "Beat eggs with salt and pepper.",
       "Sauté chopped onion and tomato briefly in oil.",
@@ -116,6 +125,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["stovetop"],
     prep_time_minutes: 15,
     minimizes_waste_tags: ["Banana"],
+    dietary_tags: ["Vegetarian"],
     instructions: [
       "Mash ripe bananas in a bowl.",
       "Whisk in eggs, milk, and a little flour to make a batter.",
@@ -130,6 +140,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["no-cook"],
     prep_time_minutes: 5,
     minimizes_waste_tags: ["Cucumber", "Yogurt"],
+    dietary_tags: ["Vegetarian", "Gluten-Free", "Low-Carb"],
     instructions: [
       "Grate cucumber and squeeze out excess water.",
       "Whisk yogurt with a pinch of salt and pepper.",
@@ -144,6 +155,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["stovetop"],
     prep_time_minutes: 7,
     minimizes_waste_tags: ["Bread", "Cheese"],
+    dietary_tags: ["Vegetarian"],
     instructions: [
       "Butter one side of each bread slice.",
       "Layer cheese (and tomato if using) between slices, buttered side out.",
@@ -158,6 +170,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["stovetop"],
     prep_time_minutes: 25,
     minimizes_waste_tags: ["Chicken"],
+    dietary_tags: ["Gluten-Free", "Low-Carb", "High-Protein", "Dairy-Free"],
     instructions: [
       "Pat chicken dry and season with salt and pepper.",
       "Sear in a hot pan with butter, 4 minutes per side.",
@@ -173,6 +186,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["stovetop"],
     prep_time_minutes: 25,
     minimizes_waste_tags: ["Potato"],
+    dietary_tags: ["Vegetarian", "Gluten-Free"],
     instructions: [
       "Peel and chop potatoes, boil in salted water until tender.",
       "Drain, then mash with warm milk and butter.",
@@ -187,6 +201,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["blender"],
     prep_time_minutes: 5,
     minimizes_waste_tags: ["Spinach", "Banana"],
+    dietary_tags: ["Vegetarian", "Gluten-Free"],
     instructions: [
       "Wash spinach, peel banana.",
       "Blend with milk and any extras until smooth.",
@@ -201,6 +216,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["no-cook"],
     prep_time_minutes: 5,
     minimizes_waste_tags: ["Berries", "Yogurt"],
+    dietary_tags: ["Vegetarian", "Gluten-Free"],
     instructions: [
       "Spoon yogurt into a glass.",
       "Layer with berries (and sliced banana if using).",
@@ -215,6 +231,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["oven"],
     prep_time_minutes: 35,
     minimizes_waste_tags: ["Carrot", "Bell Pepper", "Potato"],
+    dietary_tags: ["Vegan", "Vegetarian", "Gluten-Free", "Dairy-Free"],
     instructions: [
       "Heat oven to 220°C. Chop veggies into bite-size pieces.",
       "Toss with oil, salt, and pepper on a baking tray.",
@@ -230,6 +247,7 @@ export const RECIPES: Recipe[] = [
     equipment_needed: ["blender"],
     prep_time_minutes: 5,
     minimizes_waste_tags: ["Mango"],
+    dietary_tags: ["Vegetarian", "Gluten-Free"],
     instructions: [
       "Peel and chop the mango.",
       "Blend mango, yogurt, milk, and a little sugar with ice.",
