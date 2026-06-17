@@ -71,7 +71,7 @@ function PantryPage() {
           </Button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {items.map((it) => (
             <CountdownBar
               key={it.id}
@@ -86,10 +86,10 @@ function PantryPage() {
               trailing={
                 <button
                   onClick={() => handleDelete(it.id)}
-                  className="mt-1 size-7 rounded-full bg-muted hover:bg-danger/10 flex items-center justify-center"
+                  className="size-8 rounded-full bg-card border border-border hover:bg-danger/10 flex items-center justify-center shadow-sm"
                   aria-label="Remove"
                 >
-                  <Trash2 className="size-3.5 text-muted-foreground" />
+                  <Trash2 className="size-4 text-muted-foreground" />
                 </button>
               }
             />
