@@ -165,3 +165,19 @@
     color: var(--color-foreground);
   }
 }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.golden-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--color-golden) 55%, transparent) 0%,
+    color-mix(in oklab, var(--color-golden) 80%, white 10%) 45%,
+    color-mix(in oklab, var(--color-golden) 55%, transparent) 90%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3.5s ease-in-out infinite;
+}
