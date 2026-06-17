@@ -3,7 +3,20 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronRight, Plus, Clock } from "lucide-react";
+import {
+  Search,
+  ChevronRight,
+  Plus,
+  Calendar,
+  X,
+  Leaf,
+  Sprout,
+  Award,
+  Info,
+  Refrigerator,
+  Lightbulb,
+  AlertCircle,
+} from "lucide-react";
 import { toISODate } from "@/lib/pantry-utils";
 import { addPantryItem, searchIngredients, MANUAL_CATEGORY_PRESETS, type ManualCategory } from "@/lib/pantry-store";
 import type { Ingredient } from "@/lib/ingredients-data";
@@ -17,6 +30,7 @@ export function AddIngredientSheet({ open, onOpenChange }: { open: boolean; onOp
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Ingredient | null>(null);
   const [tipsFor, setTipsFor] = useState<StorageTipData | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState("1");
   const [purchaseDate, setPurchaseDate] = useState(toISODate(new Date()));
   const [ripeness, setRipeness] = useState<typeof RIPENESS[number]>("Ripe");
@@ -28,6 +42,7 @@ export function AddIngredientSheet({ open, onOpenChange }: { open: boolean; onOp
   useEffect(() => {
     if (!open) {
       setSearch(""); setSelected(null); setTipsFor(null);
+      setExpandedId(null);
       setQuantity("1"); setPurchaseDate(toISODate(new Date()));
       setRipeness("Ripe"); setCustomMode(false); setCustomName(""); setCustomCategory("produce");
     }
@@ -78,83 +93,75 @@ export function AddIngredientSheet({ open, onOpenChange }: { open: boolean; onOp
 
           {!customMode && (
             <>
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <div className="relative mb-2">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                 <Input
                   autoFocus
                   placeholder="Search ingredients…"
                   value={search}
-                  onChange={(e) => { setSearch(e.target.value); setSelected(null); }}
-                  className="pl-9 rounded-xl h-11"
+                  onChange={(e) => { setSearch(e.target.value); setSelected(null); setExpandedId(null); }}
+                  className="pl-10 pr-10 rounded-2xl h-12 bg-card shadow-[0_2px_10px_-4px_rgba(0,0,0,0.12)] border-border"
                 />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearch(""); setSelected(null); setExpandedId(null); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 size-6 rounded-full bg-muted hover:bg-muted/70 flex items-center justify-center"
+                    aria-label="Clear search"
+                  >
+                    <X className="size-3.5 text-muted-foreground" />
+                  </button>
+                )}
               </div>
 
               {search && (
-                <div className="space-y-2 mb-4 relative">
+                <>
+                  <p className="text-[11px] text-muted-foreground mb-3 px-1">
+                    {results.length === 0 ? "No matches" : `${results.length} result${results.length === 1 ? "" : "s"} found`}
+                  </p>
                   {results.length === 0 ? (
-                    <div className="text-center py-6 px-4 bg-muted/40 rounded-2xl">
-                      <p className="text-sm text-muted-foreground">No matches.</p>
+                    <div className="text-center py-6 px-4 bg-muted/40 rounded-2xl mb-4">
+                      <p className="text-sm text-muted-foreground">Nothing in our database for that.</p>
                       <Button variant="link" onClick={() => { setCustomMode(true); setCustomName(search); }} className="text-primary">
                         + Add “{search}” manually
                       </Button>
                     </div>
                   ) : (
-                    results.map((i) => {
-                      const isSel = selected?.id === i.id;
-                      return (
-                        <button
+                    <div className="space-y-3 mb-4">
+                      {results.map((i, idx) => (
+                        <VariantCard
                           key={i.id}
-                          type="button"
-                          onClick={() => setSelected(i)}
-                          className={cn(
-                            "w-full text-left bg-card border rounded-2xl p-3 flex items-stretch gap-3 transition-all animate-fade-in",
-                            isSel ? "border-primary shadow-md ring-2 ring-primary/20" : "border-border hover:border-primary/40",
-                          )}
-                        >
-                          <div className="size-11 rounded-xl bg-surface-warm flex items-center justify-center text-2xl flex-shrink-0">
-                            {i.emoji}
-                          </div>
-                          <div className="flex-1 min-w-0 flex flex-col">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="font-semibold text-sm text-foreground truncate">{i.variant_name}</p>
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/25 text-accent-foreground font-medium whitespace-nowrap">
-                                {i.category}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-                              {nutritionLine(i)}
-                            </p>
-                            <div className="flex items-end justify-between gap-2 mt-1.5">
-                              <span className="text-[10px] text-muted-foreground/80 flex items-center gap-1">
-                                <Clock className="size-3" /> Shelf life: {formatShelf(i.base_shelf_life_days)}
-                              </span>
-                            </div>
-                          </div>
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setTipsFor({
-                                name: i.variant_name,
-                                emoji: i.emoji,
-                                category: i.category,
-                                storage_tips: i.storage_tips,
-                                shelf_life_days: i.base_shelf_life_days,
-                                optimal_window_start_day: i.optimal_window_start_day,
-                                optimal_window_end_day: i.optimal_window_end_day,
-                              });
-                            }}
-                            className="self-center size-8 rounded-full bg-muted hover:bg-primary/15 flex items-center justify-center transition-colors flex-shrink-0"
-                            aria-label="View storage tips"
-                          >
-                            <ChevronRight className="size-4 text-muted-foreground" />
-                          </span>
-                        </button>
-                      );
-                    })
+                          ingredient={i}
+                          primary={idx === 0}
+                          selected={selected?.id === i.id}
+                          expanded={expandedId === i.id}
+                          onSelect={() => { setSelected(i); setExpandedId(null); }}
+                          onToggle={() => {
+                            setSelected(i);
+                            setExpandedId((cur) => (cur === i.id ? null : i.id));
+                          }}
+                          onAdd={() => {
+                            setSelected(i);
+                            setExpandedId(null);
+                            // scroll bottom action button into view
+                            setTimeout(() => {
+                              document.getElementById("add-to-pantry-cta")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            }, 50);
+                          }}
+                        />
+                      ))}
+
+                      {results.length > 0 && (
+                        <div className="flex items-start gap-2 rounded-2xl bg-accent/15 border border-accent/30 px-3 py-2.5 mt-3">
+                          <Info className="size-4 text-primary mt-0.5 flex-shrink-0" />
+                          <p className="text-[12px] text-foreground/80 leading-snug">
+                            {categoryTip(results[0].category)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   )}
-                </div>
+                </>
               )}
             </>
           )}
@@ -239,6 +246,7 @@ export function AddIngredientSheet({ open, onOpenChange }: { open: boolean; onOp
           </div>
 
           <Button
+            id="add-to-pantry-cta"
             onClick={handleSubmit}
             disabled={!canSubmit || submitting}
             className="w-full h-12 rounded-2xl text-base"
