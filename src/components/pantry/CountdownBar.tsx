@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { computeCountdown } from "@/lib/pantry-utils";
-import { Flame, ChevronRight, Clock, Trash2 } from "lucide-react";
+import { Flame, ChevronRight, Clock } from "lucide-react";
+import { useState } from "react";
 
 export interface CountdownBarItem {
   id: string;
@@ -20,12 +21,16 @@ export function CountdownBar({
   trailing,
   onUseItUp,
   onOpenTips,
+  onDiscard,
+  onMarkUsed,
 }: {
   item: CountdownBarItem;
   onClick?: () => void;
   trailing?: React.ReactNode;
   onUseItUp?: () => void;
   onOpenTips?: () => void;
+  onDiscard?: () => void;
+  onMarkUsed?: () => void;
 }) {
   const info = computeCountdown({
     purchaseDate: item.purchase_date,
@@ -34,37 +39,52 @@ export function CountdownBar({
     optimalEnd: item.optimal_window_end_day,
   });
 
-  // Urgency color based on REMAINING shelf life
+  const isExpired = info.daysRemaining <= 0;
   const pctRemaining = info.pctRemaining;
-  const urgency: "green" | "orange" | "red" =
-    info.daysRemaining <= 0 || pctRemaining < 25
-      ? "red"
-      : pctRemaining < 50
-      ? "orange"
-      : "green";
 
-  const fillStyles = {
-    green: { fill: "bg-[color:var(--color-primary)]", track: "bg-[color:var(--color-accent)]/25" },
-    orange: { fill: "bg-[color:var(--color-warning)]", track: "bg-[color:var(--color-warning)]/20" },
-    red: { fill: "bg-[color:var(--color-danger)]", track: "bg-[color:var(--color-danger)]/15" },
+  // Urgency tier drives the fill color (green → orange → red as time drains)
+  const urgency: "green" | "orange" | "red" =
+    pctRemaining < 25 ? "red" : pctRemaining < 50 ? "orange" : "green";
+
+  const fillColor = {
+    green: "var(--color-primary, #2D5A27)",
+    orange: "var(--color-warning, #E8780C)",
+    red: "var(--color-danger, #D93025)",
   }[urgency];
 
-  // Fill width = elapsed % (so urgency fills the pill as time passes)
-  const fillPct = Math.min(100, Math.max(8, info.pctElapsed));
+  // The pill drains from right → left: the colored portion shrinks while the
+  // lighter "spent" track is revealed behind it.
+  const remainingPct = isExpired ? 0 : Math.max(6, pctRemaining);
 
-  // Golden window overlay positioned by actual ingredient data
+  // Golden window overlay positioned by ingredient data
   const goldStart = Math.max(0, info.goldenStartPct);
   const goldEnd = Math.min(100, info.goldenEndPct);
-  const hasGolden = goldEnd > goldStart + 1;
+  const hasGolden =
+    !isExpired &&
+    item.optimal_window_end_day > item.optimal_window_start_day &&
+    goldEnd > goldStart + 0.5;
 
-  const isDanger = urgency === "red";
+  const [removing, setRemoving] = useState(false);
+  const handleExpiredAction = (fn?: () => void) => {
+    if (!fn) return;
+    setRemoving(true);
+    setTimeout(fn, 280);
+  };
+
   const showUseItUp =
-    !!onUseItUp && (info.status === "golden" || info.status === "past" || info.status === "expired");
+    !isExpired &&
+    !!onUseItUp &&
+    (info.status === "golden" || info.status === "past");
 
-  const daysLabel = info.daysRemaining <= 0 ? "0d" : `${info.daysRemaining}d`;
+  const daysLabel = `${Math.max(0, info.daysRemaining)}d`;
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div
+      className={cn(
+        "flex flex-col gap-1.5 transition-all duration-300",
+        removing && "opacity-0 -translate-y-1 scale-[0.98]",
+      )}
+    >
       <div className="flex items-baseline justify-between gap-2 px-2">
         <p className="font-semibold text-sm text-foreground truncate">{item.display_name}</p>
         <span className="text-[10px] uppercase tracking-wide text-muted-foreground whitespace-nowrap">{item.quantity}</span>
@@ -74,30 +94,59 @@ export function CountdownBar({
         onClick={onClick}
         className={cn(
           "relative flex-1 h-16 rounded-full shadow-[0_4px_16px_-6px_rgba(0,0,0,0.18)] overflow-hidden transition-all",
-          fillStyles.track,
           onClick && "cursor-pointer hover:shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] hover:-translate-y-0.5",
         )}
+        style={{
+          // Lighter "spent" track — desaturated tint of current urgency color.
+          background: isExpired ? "#9E9E9E" : `color-mix(in oklab, ${fillColor} 18%, white)`,
+        }}
       >
-        {/* Filled urgency portion */}
-        <div
-          className={cn(
-            "absolute inset-y-0 left-0 transition-[width] duration-500 ease-out",
-            fillStyles.fill,
-            isDanger && "animate-pulse",
-          )}
-          style={{ width: `${fillPct}%` }}
-        />
-
-        {/* Golden zone overlay (positioned by real shelf data) */}
-        {hasGolden && (
+        {/* Filled remaining portion — drains as time elapses */}
+        {!isExpired && (
           <div
-            className="absolute top-1.5 bottom-1.5 rounded-full golden-shimmer opacity-80 mix-blend-screen pointer-events-none"
+            className={cn(
+              "absolute inset-y-0 left-0 rounded-full transition-[width,background-color] duration-500 ease-out",
+              urgency === "red" && "animate-pulse",
+            )}
+            style={{ width: `${remainingPct}%`, background: fillColor }}
+          />
+        )}
+
+        {/* Expired: black/grey checkered overlay */}
+        {isExpired && (
+          <div
+            className="absolute inset-0 pointer-events-none"
             style={{
-              left: `${goldStart}%`,
-              width: `${Math.max(2, goldEnd - goldStart)}%`,
+              backgroundImage:
+                "repeating-conic-gradient(#1A1A1A 0% 25%, #4a4a4a 0% 50%)",
+              backgroundSize: "14px 14px",
+              opacity: 0.55,
             }}
             aria-hidden="true"
           />
+        )}
+
+        {/* Golden zone overlay — amber band with gloss, positioned by shelf data */}
+        {hasGolden && (
+          <div
+            className="absolute top-2 bottom-2 pointer-events-none overflow-hidden"
+            style={{
+              left: `${goldStart}%`,
+              width: `${Math.max(3, goldEnd - goldStart)}%`,
+              borderRadius: "4px",
+              background: "rgba(245, 184, 0, 0.35)",
+              boxShadow: "inset 0 0 0 1px rgba(245, 184, 0, 0.45)",
+            }}
+            aria-hidden="true"
+          >
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 70%)",
+              }}
+            />
+          </div>
         )}
 
         {/* Circular emoji embedded at left end of pill */}
@@ -105,15 +154,50 @@ export function CountdownBar({
           {item.emoji}
         </div>
 
-        {/* Days remaining — always on the right side of the pill */}
-        <div className="absolute top-1/2 -translate-y-1/2 right-3 flex items-center gap-1 text-foreground font-bold text-sm tabular-nums z-10">
-          <Clock className="size-3.5" />
-          <span>{daysLabel}</span>
+        {/* Days remaining / Expired label — always on the right side */}
+        <div
+          className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center gap-1 text-white font-bold tabular-nums z-10"
+          style={{
+            fontSize: "14px",
+            textShadow: "0px 1px 3px rgba(0,0,0,0.45)",
+          }}
+        >
+          {isExpired ? (
+            <span className="tracking-wide">Expired</span>
+          ) : (
+            <>
+              <Clock className="size-4 text-white" />
+              <span>{daysLabel}</span>
+            </>
+          )}
         </div>
       </div>
 
       {/* Trailing controls outside the pill */}
       <div className="flex items-center gap-1.5">
+        {isExpired ? (
+          <>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleExpiredAction(onDiscard ?? onMarkUsed);
+              }}
+              className="h-8 px-3 rounded-full border border-danger/60 text-danger text-xs font-semibold hover:bg-danger/10 transition-colors"
+            >
+              Discard
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleExpiredAction(onMarkUsed ?? onDiscard);
+              }}
+              className="h-8 px-3 rounded-full border border-primary/60 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
+            >
+              I used it
+            </button>
+          </>
+        ) : (
+          <>
         {onOpenTips && (
           <button
             onClick={(e) => {
@@ -132,18 +216,15 @@ export function CountdownBar({
               e.stopPropagation();
               onUseItUp?.();
             }}
-            className={cn(
-              "size-8 rounded-full flex items-center justify-center shadow-sm transition-colors",
-              isDanger
-                ? "bg-danger/15 text-danger hover:bg-danger/25"
-                : "bg-golden/25 text-golden-foreground hover:bg-golden/40",
-            )}
+            className="size-8 rounded-full flex items-center justify-center shadow-sm transition-colors bg-golden/25 text-golden-foreground hover:bg-golden/40"
             aria-label="Use it up"
           >
             <Flame className="size-3.5" />
           </button>
         )}
         {trailing}
+          </>
+        )}
       </div>
       </div>
     </div>
