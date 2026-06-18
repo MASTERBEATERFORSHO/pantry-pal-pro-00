@@ -105,11 +105,8 @@ export function CountdownBar({
           {item.emoji}
         </div>
 
-        {/* Days remaining inside fill, right-edge of fill */}
-        <div
-          className="absolute top-1/2 -translate-y-1/2 flex items-center gap-1 text-white font-bold text-sm tabular-nums drop-shadow z-10"
-          style={{ left: `calc(max(${fillPct}%, 72px) - 52px)` }}
-        >
+        {/* Days remaining — always on the right side of the pill */}
+        <div className="absolute top-1/2 -translate-y-1/2 right-3 flex items-center gap-1 text-foreground font-bold text-sm tabular-nums z-10">
           <Clock className="size-3.5" />
           <span>{daysLabel}</span>
         </div>
