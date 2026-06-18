@@ -77,6 +77,8 @@ function PantryPage() {
               key={it.id}
               item={it}
               onOpenTips={() => openTips(it)}
+              onDiscard={() => handleDelete(it.id)}
+              onMarkUsed={() => handleDelete(it.id)}
               onUseItUp={() =>
                 navigate({
                   to: "/recipes",
