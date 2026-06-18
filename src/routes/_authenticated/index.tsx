@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CountdownBar } from "@/components/pantry/CountdownBar";
-import { usePantry, type PantryItem } from "@/lib/pantry-store";
+import { usePantry, removePantryItem, type PantryItem } from "@/lib/pantry-store";
 import { canonicalName } from "@/lib/recipe-matcher";
 import { StorageTipPanel, type StorageTipData } from "@/components/pantry/StorageTipPanel";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,8 @@ function HomePage() {
               key={it.id}
               item={it}
               onOpenTips={() => openTips(it)}
+              onDiscard={() => removePantryItem(it.id)}
+              onMarkUsed={() => removePantryItem(it.id)}
               onUseItUp={() =>
                 navigate({
                   to: "/recipes",
